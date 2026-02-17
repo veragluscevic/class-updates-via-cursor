@@ -1203,7 +1203,7 @@ int input_get_guess(double *xguess,
       dxdy[index_guess] = 1.;
       break;
     case Omega_dcdmdr:
-      Omega_M = ba.Omega0_cdm+ba.Omega0_idm+ba.Omega0_dcdmdr+ba.Omega0_b;
+      Omega_M = ba.Omega0_cdm+ba.Omega0_dmeff+ba.Omega0_idm+ba.Omega0_dcdmdr+ba.Omega0_b;
       /* *
        * This formula is exact in a Matter + Lambda Universe, but only for Omega_dcdm,
        * not the combined.
@@ -1222,7 +1222,7 @@ int input_get_guess(double *xguess,
       dxdy[index_guess] = 1./a_decay;
       break;
     case omega_dcdmdr:
-      Omega_M = ba.Omega0_cdm+ba.Omega0_idm+ba.Omega0_dcdmdr+ba.Omega0_b;
+      Omega_M = ba.Omega0_cdm+ba.Omega0_dmeff+ba.Omega0_idm+ba.Omega0_dcdmdr+ba.Omega0_b;
       gamma = ba.Gamma_dcdm/ba.H0;
       if (gamma < 1)
         a_decay = 1.0;
@@ -1255,7 +1255,7 @@ int input_get_guess(double *xguess,
       /* This works since correspondence is Omega_ini_dcdm -> Omega_dcdmdr and
          omega_ini_dcdm -> omega_dcdmdr */
       Omega0_dcdmdr *=pfzw->target_value[index_guess];
-      Omega_M = ba.Omega0_cdm+ba.Omega0_idm+Omega0_dcdmdr+ba.Omega0_b;
+      Omega_M = ba.Omega0_cdm+ba.Omega0_dmeff+ba.Omega0_idm+Omega0_dcdmdr+ba.Omega0_b;
       gamma = ba.Gamma_dcdm/ba.H0;
       if (gamma < 1)
         a_decay = 1.0;
@@ -2370,6 +2370,10 @@ int input_read_parameters_species(struct file_content * pfc,
   double f_cdm=1., f_idm=0.;
   short has_m_budget = _FALSE_, has_cdm_userdefined = _FALSE_;
   double Omega_m_remaining = 0.;
+  int N_dmeff=0;
+  int int1, int2;
+  double *pointer1, *pointer2;
+  char * dmeff_target_string;
 
 
   sigma_B = 2.*pow(_PI_,5.)*pow(_k_B_,4.)/15./pow(_h_P_,3.)/pow(_c_,2);  // [W/(m^2 K^4) = Kg/(K^4 s^3)]
@@ -2508,6 +2512,155 @@ int input_read_parameters_species(struct file_content * pfc,
     has_cdm_userdefined = _TRUE_;
   }
   class_test(pba->Omega0_cdm<0,errmsg, "You cannot set the cold dark matter density to negative values.");
+
+  /** 4b) Omega_0_dmeff (dark matter with effective interactions) */
+  class_call(parser_read_double(pfc,"Omega_dmeff",&param1,&flag1,errmsg),
+             errmsg,
+             errmsg);
+  class_call(parser_read_double(pfc,"omega_dmeff",&param2,&flag2,errmsg),
+             errmsg,
+             errmsg);
+  class_call(parser_read_double(pfc,"f_dmeff",&param3,&flag3,errmsg),
+             errmsg,
+             errmsg);
+  class_test(class_at_least_two_of_three(flag1,flag2,flag3),
+             errmsg,
+             "In input file, you can only enter one of Omega_dmeff, omega_dmeff, or f_dmeff. Choose one.");
+
+  if (flag1 == _TRUE_)
+    pba->Omega0_dmeff = param1;
+  if (flag2 == _TRUE_)
+    pba->Omega0_dmeff = param2/pba->h/pba->h;
+  if (flag3 == _TRUE_) {
+    class_test((param3 < 0.) || (param3 > 1.),
+               errmsg,
+               "The fraction of dmeff must be between 0 and 1. You asked for f_dmeff=%e",param3);
+    class_test((param3 > 0.) && (pba->Omega0_cdm == 0.),
+               errmsg,
+               "If you want a fraction of dmeff, you should not set the fraction of CDM to zero.");
+
+    pba->Omega0_dmeff = param3 * pba->Omega0_cdm;
+    pba->Omega0_cdm -= pba->Omega0_dmeff;
+
+    if ((ppt->gauge == synchronous) && (pba->Omega0_cdm < ppr->Omega0_cdm_min_synchronous)) {
+      double cdm_adjustment = ppr->Omega0_cdm_min_synchronous - pba->Omega0_cdm;
+      pba->Omega0_cdm = ppr->Omega0_cdm_min_synchronous;
+      pba->Omega0_dmeff -= cdm_adjustment;
+    }
+  }
+
+  if (pba->Omega0_dmeff > 0) {
+
+    class_call(parser_read_double(pfc,"m_dmeff",&param1,&flag1,errmsg),
+               errmsg,
+               errmsg);
+    if (flag1 == _TRUE_)
+      pba->m_dmeff = param1 * 1.0e9 * _eV_ / (_c_ * _c_);
+
+    class_read_int("N_dmeff",N_dmeff);
+
+    if (N_dmeff > 0) {
+      pba->N_dmeff = N_dmeff;
+
+      class_call(parser_read_list_of_doubles(pfc,"npow_dmeff",&int1,&(pba->npow_dmeff),&flag1,errmsg),
+                 errmsg,
+                 errmsg);
+      class_test(flag1 == _FALSE_,errmsg,
+                 "Input npow_dmeff is found, but no values found!");
+      class_test(int1 != N_dmeff,errmsg,
+                 "Number of npow_dmeff entries found, %d, does not match N_dmeff, %d",
+                 int1,N_dmeff);
+
+      for (n=0; n<N_dmeff; n++) {
+        class_test(pba->npow_dmeff[n] < -4,errmsg,"In input file, must set npow_dmeff entries >= -4");
+      }
+
+      class_call(parser_read_list_of_doubles(pfc,
+                                             "sigma_dmeff",
+                                             &int1,
+                                             &pointer1,
+                                             &flag1,
+                                             errmsg),
+                 errmsg,
+                 errmsg);
+
+      class_call(parser_read_list_of_doubles(pfc,
+                                             "log10sigma_dmeff",
+                                             &int2,
+                                             &pointer2,
+                                             &flag2,
+                                             errmsg),
+                 errmsg,
+                 errmsg);
+
+      class_test(((flag1 == _TRUE_) && (flag2 == _TRUE_)),
+                 errmsg,
+                 "In input file, you can only enter one of sigma_dmeff or log10sigma_dmeff, choose one");
+
+      class_alloc(pba->sigma_dmeff, sizeof(double)*N_dmeff, pba->error_message);
+
+      if (flag1 == _TRUE_) {
+        class_test(int1 != N_dmeff,errmsg,
+                   "Number of sigma_dmeff entries found, %d, does not match N_dmeff, %d",
+                   int1,N_dmeff);
+        for (n=0; n<N_dmeff; n++) {
+          pba->sigma_dmeff[n] = pointer1[n] / 10000.;
+        }
+        free(pointer1);
+      }
+      else if (flag2 == _TRUE_) {
+        class_test(int2 != N_dmeff,errmsg,
+                   "Number of log10sigma_dmeff entries found, %d, does not match N_dmeff, %d",
+                   int2,N_dmeff);
+        for (n=0; n<N_dmeff; n++) {
+          pba->sigma_dmeff[n] = pow(10,pointer2[n]) / 10000.;
+        }
+        free(pointer2);
+      }
+      else {
+        for (n=0; n<N_dmeff; n++) {
+          pba->sigma_dmeff[n] = 0.;
+        }
+      }
+
+      class_call(parser_read_list_of_strings(pfc,"dmeff_target",&entries_read,&dmeff_target_string,&flag1,errmsg),
+                 errmsg,
+                 errmsg);
+      class_test(flag1 == _FALSE_,errmsg,
+                 "Input dmeff_target is found, but no target names found!");
+      class_test(entries_read != N_dmeff,errmsg,
+                 "Number of dmeff targets found, %d, does not match N_dmeff, %d",
+                 entries_read,N_dmeff);
+
+      class_alloc(pth->dmeff_target, sizeof(enum select_dmeff_target)*N_dmeff, pth->error_message);
+      for (n=0; n<N_dmeff; n++) {
+        if ((strstr(dmeff_target_string+n*_ARGUMENT_LENGTH_MAX_,"baryon") != NULL)) {
+          pth->dmeff_target[n] = baryon;
+        }
+        else if ((strstr(dmeff_target_string+n*_ARGUMENT_LENGTH_MAX_,"hydrogen") != NULL)) {
+          pth->dmeff_target[n] = hydrogen;
+        }
+        else if ((strstr(dmeff_target_string+n*_ARGUMENT_LENGTH_MAX_,"helium") != NULL)) {
+          pth->dmeff_target[n] = helium;
+        }
+        else if ((strstr(dmeff_target_string+n*_ARGUMENT_LENGTH_MAX_,"electron") != NULL)) {
+          pth->dmeff_target[n] = electron;
+        }
+        else {
+          class_stop(errmsg,"incomprehensible input '%s' for the field 'dmeff_target'",dmeff_target_string+n*_ARGUMENT_LENGTH_MAX_);
+        }
+      }
+      free(dmeff_target_string);
+
+    }
+
+    class_call(parser_read_double(pfc,"Vrel_dmeff",&param1,&flag1,errmsg),
+               errmsg,
+               errmsg);
+    if (flag1 == _TRUE_)
+      pba->Vrel_dmeff = param1 * 1.0e3;
+
+  }
 
   /** 4) (Second part) Omega_0_m (total non-relativistic) */
   class_call(parser_read_double(pfc,"Omega_m",&param1,&flag1,errmsg),
@@ -3222,6 +3375,7 @@ int input_read_parameters_species(struct file_content * pfc,
   Omega_tot += pba->Omega0_b;
   Omega_tot += pba->Omega0_ur;
   Omega_tot += pba->Omega0_cdm;
+  Omega_tot += pba->Omega0_dmeff;
   Omega_tot += pba->Omega0_idm;
   Omega_tot += pba->Omega0_dcdmdr;
   Omega_tot += pba->Omega0_idr;
@@ -5832,6 +5986,15 @@ int input_default_params(struct background *pba,
   /** 4) CDM density */
   pba->Omega0_cdm = 0.1201075/pow(pba->h,2);
 
+  /** 4b) dmeff sector */
+  pba->Omega0_dmeff = 0.0;
+  pba->m_dmeff = 1.0 * 1.0e9 * _eV_ / (_c_ * _c_);
+  pba->N_dmeff = 0;
+  pba->npow_dmeff = NULL;
+  pba->sigma_dmeff = NULL;
+  pth->dmeff_target = NULL;
+  pba->Vrel_dmeff = 0.0;
+
   /** 5) ncdm sector */
   /** 5.a) Number of distinct species */
   pba->N_ncdm = 0;
@@ -5905,7 +6068,7 @@ int input_default_params(struct background *pba,
   /** 9) Dark energy contributions */
   pba->Omega0_fld = 0.;
   pba->Omega0_scf = 0.;
-  pba->Omega0_lambda = 1.-pba->Omega0_k-pba->Omega0_g-pba->Omega0_ur-pba->Omega0_b-pba->Omega0_cdm-pba->Omega0_ncdm_tot-pba->Omega0_dcdmdr - pba->Omega0_idr -pba->Omega0_idm;
+  pba->Omega0_lambda = 1.-pba->Omega0_k-pba->Omega0_g-pba->Omega0_ur-pba->Omega0_b-pba->Omega0_cdm-pba->Omega0_dmeff-pba->Omega0_ncdm_tot-pba->Omega0_dcdmdr - pba->Omega0_idr -pba->Omega0_idm;
   /** 8.a) Omega fluid */
   /** 8.a.1) PPF approximation */
   pba->use_ppf = _TRUE_;

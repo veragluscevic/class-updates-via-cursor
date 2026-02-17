@@ -67,6 +67,13 @@ struct background
 
   double Omega0_cdm;      /**< \f$ \Omega_{0 cdm} \f$: cold dark matter */
 
+  double Omega0_dmeff;    /**< \f$ \Omega_{0 dmeff} \f$: dark matter with effective interactions */
+  double m_dmeff;         /**< mass of dmeff particle in kg */
+  int N_dmeff;            /**< number of dmeff interaction terms */
+  double * sigma_dmeff;   /**< array of momentum-transfer cross sections in m^2 */
+  double * npow_dmeff;    /**< array of velocity power indices for cross sections */
+  double Vrel_dmeff;      /**< initial RMS relative bulk velocity between DM and baryons in m/s */
+
   double Omega0_idm; /**< \f$ \Omega_{0 idm} \f$: interacting dark matter with photons, baryons, and idr */
 
 
@@ -280,6 +287,7 @@ struct background
   //@{
 
   short has_cdm;       /**< presence of cold dark matter? */
+  short has_dmeff;     /**< presence of dark matter with effective interactions? */
   short has_idm;       /**< presence of interacting dark matter with photons, baryons, and idr */
   short has_dcdm;      /**< presence of decaying cold dark matter? */
   short has_dr;        /**< presence of relativistic decay radiation? */

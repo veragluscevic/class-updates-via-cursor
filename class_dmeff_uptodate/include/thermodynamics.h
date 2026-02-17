@@ -42,6 +42,17 @@ enum reionization_z_or_tau {
 };
 
 /**
+ * define the target particle with which dmeff interacts
+ */
+
+enum select_dmeff_target {
+  baryon,    /**< generic baryonic particle */
+  hydrogen,  /**< neutral and ionized hydrogen-1 */
+  helium,    /**< neutral and ionized helium-4 */
+  electron   /**< free electrons */
+};
+
+/**
  * Two useful smooth step functions, for smoothing transitions in recfast.
  */
 
@@ -73,6 +84,8 @@ struct thermodynamics
   enum reionization_parametrization reio_parametrization; /**< reionization scheme */
 
   enum reionization_z_or_tau reio_z_or_tau; /**< is the input parameter the reionization redshift or optical depth? */
+
+  enum select_dmeff_target * dmeff_target; /**< define the particle with which dmeff interacts */
 
   double tau_reio; /**< if above set to tau, input value of reionization optical depth */
 
