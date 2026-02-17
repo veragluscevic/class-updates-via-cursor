@@ -146,6 +146,10 @@ class_type_parameter(thermo_evolver,int,enum evolver_type,ndf15)
  */
 class_precision_parameter(tol_thermo_integration,double,1.0e-6)
 /**
+ * controls precision of dmeff temperature integration
+ */
+class_precision_parameter(tol_Tdmeff_integration,double,1.0e-2)
+/**
  * Only relevant for rk evolver: the default integration step is given
  * by this number multiplied by the timescale defined in
  * thermodynamics_timescale (given by the sampling step)

@@ -47,17 +47,17 @@ A user can verify this works by creating an input file in class_dmeff_uptodate/ 
   - [x] Modify background_free to deallocate dmeff arrays
   - [x] Add dmeff columns to background output (background_output_titles and background_output_data)
   - [x] Validate: compile, run with a dmeff INI file, verify rho_dmeff column appears in background output and matches reference rho_dmeff(z) to < 0.1%
-- [ ] Phase 3: Port thermodynamics module for temperature evolution and interaction rates
-  - [ ] Add thermodynamics indices for dmeff temperature and rates using class_define_index
-  - [ ] Add enum select_dmeff_target for target particle types in thermodynamics.h
-  - [ ] Add dmeff_target pointer and z_dmeff_decoupling to thermodynamics structure
-  - [ ] Implement thermodynamics_dmeff_rate function for momentum and heat exchange
-  - [ ] Implement thermodynamics_dmeff_temperature for ODE integration (including write-back to background table and re-splining)
-  - [ ] Implement thermodynamics_dmeff_derivs for temperature derivatives
-  - [ ] Modify thermodynamics_init to call temperature integration after recombination
-  - [ ] Modify thermodynamics_at_z to interpolate dmeff quantities
-  - [ ] Add dmeff columns to thermodynamics output
-  - [ ] Validate: run with dmeff INI file, compare T_dmeff(z) and T_baryon(z) at z=10, 100, 1000 against reference (< 0.1% error); verify z_dmeff_decoupling matches reference
+- [x] Phase 3: Port thermodynamics module for temperature evolution and interaction rates
+  - [x] Add thermodynamics indices for dmeff temperature and rates using class_define_index
+  - [x] Add enum select_dmeff_target for target particle types in thermodynamics.h
+  - [x] Add dmeff_target pointer and z_dmeff_decoupling to thermodynamics structure
+  - [x] Implement thermodynamics_dmeff_rate function for momentum and heat exchange
+  - [x] Implement thermodynamics_dmeff_temperature for ODE integration (including write-back to background table and re-splining)
+  - [x] Implement thermodynamics_dmeff_derivs for temperature derivatives
+  - [x] Modify thermodynamics_init to call temperature integration after recombination
+  - [x] Modify thermodynamics_at_z to interpolate dmeff quantities
+  - [x] Add dmeff columns to thermodynamics output
+  - [x] Validate: run with dmeff INI file, compare T_dmeff(z) and T_baryon(z) at z=10, 100, 1000 against reference (< 0.1% error); verify z_dmeff_decoupling matches reference
 - [ ] Phase 4: Port perturbations module for density and velocity evolution
   - [ ] Add perturbation indices for delta_dmeff and theta_dmeff
   - [ ] Add source function flags (has_source_delta_dmeff, has_source_theta_dmeff)
@@ -582,6 +582,35 @@ Validation results:
 - T_dmeff shows placeholder values (T_cmb*(1+z)) as expected; will be corrected in Phase 3
 - Vanilla test confirms no dmeff columns appear when has_dmeff is false
 - Background output file contains all 6 dmeff columns: (.)rho_dmeff, T_dmeff, Vrel_dmeff, dkappa_dmeff, dkappaT_dmeff, cdmeff2
+
+
+### Phase 3 Thermodynamics Module (completed 2026-02-17)
+
+Files modified:
+- class_dmeff_uptodate/include/thermodynamics.h: Added 5 thermodynamics index fields (index_th_Tdmeff, index_th_dkappa_dmeff, index_th_ddkappa_dmeff, index_th_dkappaT_dmeff, index_th_cdmeff2), z_dmeff_decoupling, dmeff integration indices (index_ti_tau, index_ti_Tdm, ti_size), pvecthermo to thermodynamics_parameters_and_workspace, 3 dmeff function declarations
+- class_dmeff_uptodate/include/precisions.h: Added tol_Tdmeff_integration precision parameter (1.0e-2)
+- class_dmeff_uptodate/source/thermodynamics.c: Added 5 class_define_index calls for dmeff thermodynamics indices, dmeff integration index initialization, dmeff rate computation in thermodynamics_at_z extrapolation branch, dmeff temperature integration call in thermodynamics_calculate_remaining_quantities, dmeff decoupling output in thermodynamics_output_summary, 5 output column titles and data stores, dmeff_target deallocation in thermodynamics_free, 3 new functions (thermodynamics_dmeff_rate, thermodynamics_dmeff_derivs, thermodynamics_dmeff_temperature)
+- class_dmeff_uptodate/test_dmeff/compare_outputs.py: Fixed z-column detection for v3.3.4 output (column 0 is scale factor a, not z); fixed np.interp for decreasing z arrays
+
+Key implementation detail - dTb convention difference:
+- v2.9.4 stores dTb/dtau (derivative wrt conformal time) in index_th_dTb
+- v3.3.4 stores dTb/dz (derivative wrt redshift) in index_th_dTb
+- thermodynamics_dmeff_rate converts: dTb_tau = dTb_z * (-H), where H = pvecback[index_bg_H]
+
+Key implementation detail - background spline table:
+- v2.9.4 splines background_table against tau_table using d2background_dtau2_table
+- v3.3.4 splines background_table against loga_table using d2background_dloga2_table
+- thermodynamics_dmeff_temperature uses loga_table for spline recreation
+
+Validation results:
+- Compilation: clean build with zero new warnings
+- All 6 test cases run without errors
+- T_dmeff(z) matches reference to < 0.06% at z=10, 100, 1000 for all 5 dmeff test cases
+- Tb(z) shows ~0.3% difference at z=10, confirmed as baseline CLASS v2.9.4→v3.3.4 difference (identical in vanilla test)
+- z_dmeff_decoupling matches reference values for all test cases
+- Background T_dmeff now shows correct values (not T_cmb/a placeholders)
+- Vanilla test: Cl and P(k) unchanged vs reference (< 0.2% max, baseline CLASS version difference)
+- rate_dmeff_mom: < 0.15% at most z values; up to ~0.3% at z=1000 due to xe differences between HyRec versions
 
 
 ## Interfaces and Dependencies

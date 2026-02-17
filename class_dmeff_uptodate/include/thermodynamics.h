@@ -87,6 +87,14 @@ struct thermodynamics
 
   enum select_dmeff_target * dmeff_target; /**< define the particle with which dmeff interacts */
 
+  /** parameters for DMeff */
+
+  double z_dmeff_decoupling; /**< redshift at which Tdmeff decouples from photon-baryon fluid */
+
+  int index_ti_tau;  /**< index of conformal time in dmeff integration vector */
+  int index_ti_Tdm;  /**< index of dmeff temperature in dmeff integration vector */
+  int ti_size;       /**< number of dmeff integration indices */
+
   double tau_reio; /**< if above set to tau, input value of reionization optical depth */
 
   double z_reio;   /**< if above set to z,   input value of reionization redshift */
@@ -228,6 +236,11 @@ struct thermodynamics
   int index_th_ddcb2;         /**< second derivative wrt conformal time of squared baryon sound speed  \f$ d^2 [c_b^2] / d \tau^2 \f$ (only computed if some non0-minimal tight-coupling schemes is requested) */
   int index_th_rate;          /**< maximum variation rate of \f$ exp^{-\kappa}\f$, g and \f$ (d g / d \tau) \f$, used for computing integration step in perturbation module */
   int index_th_r_d;           /**< simple analytic approximation to the photon comoving damping scale */
+  int index_th_Tdmeff;        /**< dmeff temperature \f$ T_{dmeff} \f$ */
+  int index_th_dkappa_dmeff;  /**< dmeff momentum exchange rate (units 1/Mpc) */
+  int index_th_ddkappa_dmeff; /**< dmeff momentum exchange rate derivative wrt tau */
+  int index_th_dkappaT_dmeff; /**< dmeff heat exchange rate (units 1/Mpc) */
+  int index_th_cdmeff2;       /**< dmeff speed of sound squared \f$ c_{dmeff}^2 \f$ */
 
   int th_size;                /**< size of thermodynamics vector */
 
@@ -509,6 +522,7 @@ struct thermodynamics_parameters_and_workspace {
   /* workspace */
   struct thermo_workspace * ptw;
   double * pvecback;
+  double * pvecthermo; /**< thermodynamics vector workspace, used by dmeff integration */
 };
 
 /**************************************************************/
@@ -691,6 +705,21 @@ extern "C" {
                                              struct thermodynamics* pth,
                                              double z_ini,
                                              struct thermo_diffeq_workspace * ptdw);
+
+  int thermodynamics_dmeff_rate(struct background *pba,
+                                struct thermodynamics *pth,
+                                double *pvecback,
+                                double *pvecthermo);
+
+  int thermodynamics_dmeff_temperature(struct precision *ppr,
+                                       struct background *pba,
+                                       struct thermodynamics *pth);
+
+  int thermodynamics_dmeff_derivs(double tau,
+                                  double *y,
+                                  double *dy,
+                                  void * parameters_and_workspace,
+                                  ErrorMsg error_message);
 
 #ifdef __cplusplus
 }

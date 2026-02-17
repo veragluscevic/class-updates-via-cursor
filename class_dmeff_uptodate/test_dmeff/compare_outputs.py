@@ -101,8 +101,17 @@ def relative_error(ref, new, floor=1e-30):
     return np.abs(new - ref) / denom
 
 
+def ensure_increasing(x, *ys):
+    """Return x and corresponding y arrays sorted so x is increasing."""
+    if len(x) > 1 and x[0] > x[-1]:
+        idx = np.argsort(x)
+        return (x[idx],) + tuple(y[idx] for y in ys)
+    return (x,) + ys
+
 def interpolate_to_grid(x_ref, y_ref, x_new, y_new, x_points):
     """Interpolate both reference and new data to the same x points."""
+    x_ref, y_ref = ensure_increasing(x_ref, y_ref)
+    x_new, y_new = ensure_increasing(x_new, y_new)
     ref_interp = np.interp(x_points, x_ref, y_ref)
     new_interp = np.interp(x_points, x_new, y_new)
     return ref_interp, new_interp
@@ -125,8 +134,16 @@ def check_background(test_name, output_dir, ref_dir, tolerance):
         return False
 
     passed = True
-    z_ref = ref_data[:, 0]
-    z_new = new_data[:, 0]
+    z_col_ref = find_column(ref_names, 'z')
+    z_col_new = find_column(new_names, 'z')
+    z_ref = ref_data[:, z_col_ref if z_col_ref is not None else 0]
+    z_new = new_data[:, z_col_new if z_col_new is not None else 0]
+
+    # Sort z arrays to be increasing for np.interp
+    sort_ref = np.argsort(z_ref)
+    sort_new = np.argsort(z_new)
+    z_ref_s = z_ref[sort_ref]
+    z_new_s = z_new[sort_new]
 
     z_checks = [0, 100, 1000, 10000]
 
@@ -135,8 +152,8 @@ def check_background(test_name, output_dir, ref_dir, tolerance):
     col_new = find_column(new_names, 'rho_dmeff')
     if col_ref is not None and col_new is not None:
         for z_val in z_checks:
-            r_ref = np.interp(z_val, z_ref, ref_data[:, col_ref])
-            r_new = np.interp(z_val, z_new, new_data[:, col_new])
+            r_ref = np.interp(z_val, z_ref_s, ref_data[sort_ref, col_ref])
+            r_new = np.interp(z_val, z_new_s, new_data[sort_new, col_new])
             rel_err = abs(r_new - r_ref) / max(abs(r_ref), 1e-30) * 100
             status = "PASS" if rel_err < tolerance else "FAIL"
             if status == "FAIL":
@@ -155,8 +172,8 @@ def check_background(test_name, output_dir, ref_dir, tolerance):
     col_new = find_column(new_names, 'T_dmeff')
     if col_ref is not None and col_new is not None:
         for z_val in [10, 100, 1000]:
-            t_ref = np.interp(z_val, z_ref, ref_data[:, col_ref])
-            t_new = np.interp(z_val, z_new, new_data[:, col_new])
+            t_ref = np.interp(z_val, z_ref_s, ref_data[sort_ref, col_ref])
+            t_new = np.interp(z_val, z_new_s, new_data[sort_new, col_new])
             rel_err = abs(t_new - t_ref) / max(abs(t_ref), 1e-30) * 100
             status = "PASS" if rel_err < tolerance else "FAIL"
             if status == "FAIL":
@@ -190,8 +207,16 @@ def check_thermodynamics(test_name, output_dir, ref_dir, tolerance):
         return False
 
     passed = True
-    z_ref = ref_data[:, 0]
-    z_new = new_data[:, 0]
+    z_col_ref = find_column(ref_names, 'z')
+    z_col_new = find_column(new_names, 'z')
+    z_ref = ref_data[:, z_col_ref if z_col_ref is not None else 0]
+    z_new = new_data[:, z_col_new if z_col_new is not None else 0]
+    # Sort z arrays to be increasing for np.interp
+    sort_ref = np.argsort(z_ref)
+    sort_new = np.argsort(z_new)
+    z_ref_s = z_ref[sort_ref]
+    z_new_s = z_new[sort_new]
+
     z_checks = [10, 100, 1000]
 
     # Check Tb (baryon temperature)
@@ -199,8 +224,8 @@ def check_thermodynamics(test_name, output_dir, ref_dir, tolerance):
     col_new = find_column(new_names, 'Tb')
     if col_ref is not None and col_new is not None:
         for z_val in z_checks:
-            t_ref = np.interp(z_val, z_ref, ref_data[:, col_ref])
-            t_new = np.interp(z_val, z_new, new_data[:, col_new])
+            t_ref = np.interp(z_val, z_ref_s, ref_data[sort_ref, col_ref])
+            t_new = np.interp(z_val, z_new_s, new_data[sort_new, col_new])
             rel_err = abs(t_new - t_ref) / max(abs(t_ref), 1e-30) * 100
             status = "PASS" if rel_err < tolerance else "FAIL"
             if status == "FAIL":
@@ -213,8 +238,8 @@ def check_thermodynamics(test_name, output_dir, ref_dir, tolerance):
     col_new = find_column(new_names, 'T_dmeff')
     if col_ref is not None and col_new is not None:
         for z_val in z_checks:
-            t_ref = np.interp(z_val, z_ref, ref_data[:, col_ref])
-            t_new = np.interp(z_val, z_new, new_data[:, col_new])
+            t_ref = np.interp(z_val, z_ref_s, ref_data[sort_ref, col_ref])
+            t_new = np.interp(z_val, z_new_s, new_data[sort_new, col_new])
             rel_err = abs(t_new - t_ref) / max(abs(t_ref), 1e-30) * 100
             status = "PASS" if rel_err < tolerance else "FAIL"
             if status == "FAIL":
@@ -233,8 +258,8 @@ def check_thermodynamics(test_name, output_dir, ref_dir, tolerance):
     col_new = find_column(new_names, 'rate_dmeff_mom')
     if col_ref is not None and col_new is not None:
         for z_val in z_checks:
-            r_ref = np.interp(z_val, z_ref, ref_data[:, col_ref])
-            r_new = np.interp(z_val, z_new, new_data[:, col_new])
+            r_ref = np.interp(z_val, z_ref_s, ref_data[sort_ref, col_ref])
+            r_new = np.interp(z_val, z_new_s, new_data[sort_new, col_new])
             if abs(r_ref) > 1e-30:
                 rel_err = abs(r_new - r_ref) / abs(r_ref) * 100
                 status = "PASS" if rel_err < tolerance else "FAIL"
