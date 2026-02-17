@@ -79,12 +79,12 @@ A user can verify this works by creating an input file in class_dmeff_uptodate/ 
   - [x] Locate warning code in class_dmeff/source/nonlinear.c
   - [x] Port warning to appropriate location in class_dmeff_uptodate/source/fourier.c
   - [x] Validate: verify warning appears when dmeff and Halofit/HMcode both enabled
-- [ ] Phase 7: Port Python wrapper
-  - [ ] Add Omega0_dmeff to background structure declaration in python/cclassy.pxd
-  - [ ] Add z_dmeff_decoupling to thermodynamics structure declaration in python/cclassy.pxd
-  - [ ] Add Omega0_dmeff method to python/classy.pyx
-  - [ ] Add z_dmeff_decoupling to derived parameters in get_current_derived_parameters
-  - [ ] Validate: test Python access to dmeff parameters and derived quantities
+- [x] Phase 7: Port Python wrapper
+  - [x] Add Omega0_dmeff to background structure declaration in python/cclassy.pxd
+  - [x] Add z_dmeff_decoupling to thermodynamics structure declaration in python/cclassy.pxd
+  - [x] Add Omega0_dmeff method to python/classy.pyx
+  - [x] Add z_dmeff_decoupling to derived parameters in get_current_derived_parameters
+  - [x] Validate: test Python access to dmeff parameters and derived quantities
 - [ ] Phase 8: Full integration testing and validation
   - [ ] Clean build: make clean and make (check for warnings)
   - [ ] Build Python wrapper: cd python and python setup.py install
@@ -659,6 +659,25 @@ Validation results:
 - Warning correctly appears when running with `non_linear = halofit` and dmeff enabled
 - Warning correctly does NOT appear when running without nonlinear corrections (standard dmeff tests)
 - Full comparison script on test_coulomb confirms all metrics identical to Phase 5 (no physics changes)
+
+
+### Phase 7 Python Wrapper (completed 2026-02-17)
+
+Files modified:
+- class_dmeff_uptodate/python/cclassy.pxd: Added `double Omega0_dmeff` to background struct (after Omega0_cdm), added `double z_dmeff_decoupling` to thermodynamics struct (before tt_size)
+- class_dmeff_uptodate/python/classy.pyx: Added `Omega0_dmeff()` method (after Omega0_cdm method), added `z_dmeff_decoupling` entry in `get_current_derived_parameters` (after 'a_dark' entry)
+
+Key details:
+- Matches the reference implementation in class_dmeff/python/cclassy.pxd and class_dmeff/python/classy.pyx exactly
+- Required rebuilding libclass.a for x86_64 architecture to match Python's x86_64 Conda environment
+- When running from Python, `base_path` must point to class_dmeff_uptodate root (not the python/ subdirectory) for BBN file resolution
+
+Validation results:
+- Cython compilation: clean build with only pre-existing warnings (deprecated sprintf, NumPy API, macOS version)
+- Full dmeff test (test_coulomb params): Omega0_dmeff() returns 0.12 (correct), z_dmeff_decoupling returns 9.99e+13 (matches reference 9.94e+13)
+- Vanilla test (no dmeff): Omega0_dmeff() returns 0.0 (correct), Omega0_cdm() returns 0.12 (correct)
+- Mixed test (partial dmeff): Omega0_dmeff() returns 0.06, Omega0_cdm() returns 0.06 (correct split)
+- All three tests run without errors or exceptions
 
 
 ## Interfaces and Dependencies

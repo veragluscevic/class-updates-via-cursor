@@ -87,6 +87,7 @@ cdef extern from "class.h":
         double Omega0_idr
         double T_idr
         double Omega0_cdm
+        double Omega0_dmeff
         double Omega0_idm
         double Omega0_dcdm
         double Omega0_ncdm_tot
@@ -144,6 +145,7 @@ cdef extern from "class.h":
         double u_idm_g
         double cross_idm_b
         double n_index_idm_b
+        double z_dmeff_decoupling
         int tt_size
 
     cdef struct perturbations:

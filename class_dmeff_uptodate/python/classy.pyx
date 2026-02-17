@@ -3584,6 +3584,8 @@ cdef class Class:
                 value = self.th.a_idm_dr*(4./3.)*(self.ba.h*self.ba.h*self.ba.Omega0_idr)
             elif name == 'a_dark':
                 value = self.th.a_idm_dr
+            elif name == 'z_dmeff_decoupling':
+                value = self.th.z_dmeff_decoupling
             elif name == 'tau_reio':
                 value = self.th.tau_reio
             elif name == 'z_reio':
@@ -4067,6 +4069,24 @@ cdef class Class:
             Omega of CDM
         """
         return self.ba.Omega0_cdm
+
+    def Omega0_dmeff(self):
+        """
+        Return the Omega of dmeff
+
+        Return the fractional density Omega (dimensionless) of dark
+        matter with effective interactions (dmeff), evaluated today.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        Omega0_dmeff : float
+            Omega of dmeff
+        """
+        return self.ba.Omega0_dmeff
 
     # Source functions
     def get_sources(self):
