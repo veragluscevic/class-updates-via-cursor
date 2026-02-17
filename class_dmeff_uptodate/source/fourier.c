@@ -1332,6 +1332,9 @@ int fourier_init(
     if ((pba->has_idm == _TRUE_) && (ppt->perturbations_verbose > 0)){
       fprintf(stdout,"Warning: Halofit and HMcode are proved to work for CDM, and also with a small HDM component. But you have requested interacting dark matter (idm), which makes the use of Halofit or HMCode unreliable.\n");
     }
+    if (pba->has_dmeff == _TRUE_){
+      fprintf(stdout,"Warning: Halofit and HMcode are proved to work for CDM, and also with a small HDM component. But you have requested dark matter-baryon scattering (dmeff), which makes the use of Halofit or HMCode unreliable.\n");
+    }
   }
 
   /** - define indices in fourier structure (and allocate some arrays in the structure) */

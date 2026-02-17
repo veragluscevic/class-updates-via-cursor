@@ -75,10 +75,10 @@ A user can verify this works by creating an input file in class_dmeff_uptodate/ 
   - [x] Add transfer column titles and storage for delta_dmeff, theta_dmeff in perturbations output functions
   - [x] Check class_dmeff/source/output.c for any dmeff-specific code and port if present
   - [x] Validate: compile and verify transfer output files contain dmeff columns
-- [ ] Phase 6: Port fourier module warning (formerly nonlinear)
-  - [ ] Locate warning code in class_dmeff/source/nonlinear.c
-  - [ ] Port warning to appropriate location in class_dmeff_uptodate/source/fourier.c
-  - [ ] Validate: verify warning appears when dmeff and Halofit/HMcode both enabled
+- [x] Phase 6: Port fourier module warning (formerly nonlinear)
+  - [x] Locate warning code in class_dmeff/source/nonlinear.c
+  - [x] Port warning to appropriate location in class_dmeff_uptodate/source/fourier.c
+  - [x] Validate: verify warning appears when dmeff and Halofit/HMcode both enabled
 - [ ] Phase 7: Port Python wrapper
   - [ ] Add Omega0_dmeff to background structure declaration in python/cclassy.pxd
   - [ ] Add z_dmeff_decoupling to thermodynamics structure declaration in python/cclassy.pxd
@@ -641,6 +641,24 @@ Validation results:
   - P(k): < 0.08% for all tests
   - d_dmeff transfer functions: < 0.015% for all tests
   - Known baseline failures unchanged: Tb(z=10) ~0.30%, C_l(l=2000) ~0.20% (CLASS version difference)
+
+
+### Phase 6 Fourier Module Warning (completed 2026-02-17)
+
+Files modified:
+- class_dmeff_uptodate/source/fourier.c: Added 3-line dmeff warning block in the Halofit/HMcode applicability check section (after the existing has_idm warning, before the closing brace of the `if (pfo->method > nl_none)` block)
+
+Key details:
+- The old code (class_dmeff/source/nonlinear.c line 1258-1260) had the warning inside `if (pnl->method > nl_none)` after the `has_idm_dr` check
+- The new code (class_dmeff_uptodate/source/fourier.c) places it after the equivalent `has_idm` check at line 1334
+- Warning text matches the original exactly: "Warning: Halofit and HMcode are proved to work for CDM, and also with a small HDM component. But you have requested dark matter-baryon scattering (dmeff), which makes the use of Halofit or HMCode unreliable."
+
+Validation results:
+- Compilation: clean build with zero new warnings
+- All 6 test cases run without errors (no regression)
+- Warning correctly appears when running with `non_linear = halofit` and dmeff enabled
+- Warning correctly does NOT appear when running without nonlinear corrections (standard dmeff tests)
+- Full comparison script on test_coulomb confirms all metrics identical to Phase 5 (no physics changes)
 
 
 ## Interfaces and Dependencies
