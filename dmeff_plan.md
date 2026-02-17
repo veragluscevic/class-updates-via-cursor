@@ -18,14 +18,14 @@ A user can verify this works by creating an input file in class_dmeff_uptodate/ 
 
 ## Progress
 
-- [ ] Phase 0: Create baseline validation tests from class_dmeff
-  - [ ] Define five representative test cases with exact parameter values (see Phase 0 in Plan of Work)
-  - [ ] Create test INI files in class_dmeff/test_dmeff/ for generating references
-  - [ ] Run test cases in class_dmeff directory and save reference outputs
-  - [ ] Create class_dmeff_uptodate/test_dmeff/ directory with test INI files and reference outputs
-  - [ ] Create the comparison script test_dmeff/compare_outputs.py
-  - [ ] Document expected outputs for T_dmeff(z), T_baryon(z), P(k), and CMB C_ℓ
-  - [ ] Delete any pre-existing dmeff output files from class_dmeff_uptodate/output/ to avoid stale data
+- [x] Phase 0: Create baseline validation tests from class_dmeff
+  - [x] Define five representative test cases with exact parameter values (see Phase 0 in Plan of Work)
+  - [x] Create test INI files in class_dmeff/test_dmeff/ for generating references
+  - [x] Run test cases in class_dmeff directory and save reference outputs
+  - [x] Create class_dmeff_uptodate/test_dmeff/ directory with test INI files and reference outputs
+  - [x] Create the comparison script test_dmeff/compare_outputs.py
+  - [x] Document expected outputs for T_dmeff(z), T_baryon(z), P(k), and CMB C_ℓ
+  - [x] Delete any pre-existing dmeff output files from class_dmeff_uptodate/output/ to avoid stale data
 - [ ] Phase 1: Port input module for parameter parsing (MUST come first: all dmeff code is gated by has_dmeff which input sets)
   - [ ] Add parameter parsing for Omega_dmeff, omega_dmeff, f_dmeff
   - [ ] Add parsing for m_dmeff with unit conversion from GeV to kg
@@ -510,6 +510,48 @@ The repository state can be restored at any time by reverting class_dmeff_uptoda
 ## Artifacts and Notes
 
 This section will be populated with transcripts, diffs, or snippets as implementation proceeds. Examples of what will be recorded: compiler output showing successful build, sample output from running a test case, valgrind summary, Python test output.
+
+### Phase 0 Reference Outputs (generated 2026-02-17)
+
+All reference outputs generated from class_dmeff/ (CLASS v2.9.4 with dmeff). Each test case produces 5 files: background, thermodynamics, cl, pk, tk. Reference files stored in class_dmeff_uptodate/test_dmeff/reference/.
+
+Key reference values for validation (from thermodynamics and Cl/Pk files):
+
+**test_coulomb** (npow=-4, sigma=1e-41, target=hydrogen):
+- T_dmeff: z=10: 2.529e-02 K, z=100: 7.263e-02 K, z=1000: 3.332e-01 K
+- Tb: z=10: 2.612e+00 K, z=100: 1.683e+02 K, z=1000: 2.728e+03 K
+- rate_dmeff_mom: z=10: 2.406e-04, z=100: 4.674e-05, z=1000: 7.779e-06 Mpc^-1
+- C_l^TT: l=10: 1.100e-10, l=100: 3.613e-10, l=1000: 1.371e-10
+- P(k): k=0.01: 2.216e+04, k=0.1: 5.540e+03, k=1.0: 6.584e+01 (Mpc/h)^3
+- dmeff decoupling redshift: z=9.94e+13
+
+**test_constant** (npow=0, sigma=1e-30, target=baryon):
+- T_dmeff: z=10: 1.467e-06 K, z=100: 1.237e-04 K, z=1000: 1.215e-02 K
+- C_l^TT: l=100: 3.607e-10, l=1000: 1.390e-10
+- P(k): k=0.01: 2.216e+04, k=0.1: 5.633e+03
+- dmeff decoupling redshift: z=9.42e+09
+
+**test_electron** (npow=-2, sigma=1e-35, target=electron):
+- dmeff decoupling redshift: z=9.94e+13
+
+**test_mixed** (omega_cdm=0.06, omega_dmeff=0.06, npow=-4):
+- dmeff decoupling redshift: z=9.94e+13
+
+**test_multi** (N_dmeff=2, hydrogen+electron):
+- T_dmeff: z=10: 2.529e-02 K, z=100: 7.264e-02 K, z=1000: 3.340e-01 K
+- C_l^TT: l=100: 3.613e-10, l=1000: 1.371e-10
+
+**test_vanilla** (no dmeff, baseline):
+- Tb: z=10: 2.612e+00 K, z=100: 1.683e+02 K, z=1000: 2.728e+03 K
+- C_l^TT: l=100: 3.607e-10, l=1000: 1.390e-10
+- P(k): k=0.01: 2.216e+04, k=0.1: 5.633e+03
+
+### Phase 0 File Inventory
+
+Test INI files (6): class_dmeff/test_dmeff/test_{coulomb,constant,electron,mixed,multi,vanilla}.ini
+Copies in: class_dmeff_uptodate/test_dmeff/test_{coulomb,constant,electron,mixed,multi,vanilla}.ini
+Reference outputs (30 files): class_dmeff_uptodate/test_dmeff/reference/{test_name}/{test_name}_{background,cl,pk,thermodynamics,tk}.dat
+Comparison script: class_dmeff_uptodate/test_dmeff/compare_outputs.py
 
 
 ## Interfaces and Dependencies
