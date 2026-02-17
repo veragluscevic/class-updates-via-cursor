@@ -171,6 +171,12 @@ struct background
   int index_bg_rho_g;         /**< photon density */
   int index_bg_rho_b;         /**< baryon density */
   int index_bg_rho_cdm;       /**< cdm density */
+  int index_bg_rho_dmeff;     /**< dmeff density */
+  int index_bg_Tdmeff;        /**< dmeff temperature */
+  int index_bg_Vrel_dmeff;    /**< dmeff RMS relative bulk velocity of DM and baryons */
+  int index_bg_dkappa_dmeff;  /**< dmeff momentum exchange rate (units 1/Mpc) */
+  int index_bg_dkappaT_dmeff; /**< dmeff heat exchange rate (units 1/Mpc) */
+  int index_bg_cdmeff2;       /**< dmeff speed of sound squared */
   int index_bg_rho_idm;       /**< idm density */
   int index_bg_rho_lambda;    /**< cosmological constant density */
   int index_bg_rho_fld;       /**< fluid density */

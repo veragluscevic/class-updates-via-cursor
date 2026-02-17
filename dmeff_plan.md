@@ -38,15 +38,15 @@ A user can verify this works by creating an input file in class_dmeff_uptodate/ 
   - [x] Set has_dmeff flag based on parameters (will be set in background.c Phase 2; structure field added)
   - [x] Update explanatory.ini with dmeff parameter documentation
   - [x] Validate: test that dmeff parameters are parsed and stored correctly; test error handling for invalid inputs
-- [ ] Phase 2: Port background module for dmeff density evolution
-  - [ ] Add dmeff parameters to background structure in include/background.h (Omega0_dmeff, m_dmeff, N_dmeff, sigma_dmeff, npow_dmeff, Vrel_dmeff, has_dmeff)
-  - [ ] Add background indices for dmeff quantities using class_define_index macro
-  - [ ] Modify background_indices to assign dmeff index values
-  - [ ] Modify background_functions to compute and store rho_dmeff in output vector
-  - [ ] Set placeholder values for T_dmeff, dkappa_dmeff, dkappaT_dmeff, cdmeff2 (these get overwritten by thermodynamics later)
-  - [ ] Modify background_free to deallocate dmeff arrays
-  - [ ] Add dmeff columns to background output (background_output_titles and background_output_data)
-  - [ ] Validate: compile, run with a dmeff INI file, verify rho_dmeff column appears in background output and matches reference rho_dmeff(z) to < 0.1%
+- [x] Phase 2: Port background module for dmeff density evolution
+  - [x] Add dmeff parameters to background structure in include/background.h (Omega0_dmeff, m_dmeff, N_dmeff, sigma_dmeff, npow_dmeff, Vrel_dmeff, has_dmeff)
+  - [x] Add background indices for dmeff quantities using class_define_index macro
+  - [x] Modify background_indices to assign dmeff index values
+  - [x] Modify background_functions to compute and store rho_dmeff in output vector
+  - [x] Set placeholder values for T_dmeff, dkappa_dmeff, dkappaT_dmeff, cdmeff2 (these get overwritten by thermodynamics later)
+  - [x] Modify background_free to deallocate dmeff arrays
+  - [x] Add dmeff columns to background output (background_output_titles and background_output_data)
+  - [x] Validate: compile, run with a dmeff INI file, verify rho_dmeff column appears in background output and matches reference rho_dmeff(z) to < 0.1%
 - [ ] Phase 3: Port thermodynamics module for temperature evolution and interaction rates
   - [ ] Add thermodynamics indices for dmeff temperature and rates using class_define_index
   - [ ] Add enum select_dmeff_target for target particle types in thermodynamics.h
@@ -566,6 +566,22 @@ Test INI files (6): class_dmeff/test_dmeff/test_{coulomb,constant,electron,mixed
 Copies in: class_dmeff_uptodate/test_dmeff/test_{coulomb,constant,electron,mixed,multi,vanilla}.ini
 Reference outputs (30 files): class_dmeff_uptodate/test_dmeff/reference/{test_name}/{test_name}_{background,cl,pk,thermodynamics,tk}.dat
 Comparison script: class_dmeff_uptodate/test_dmeff/compare_outputs.py
+
+### Phase 2 Background Module (completed 2026-02-17)
+
+Files modified:
+- class_dmeff_uptodate/include/background.h: Added 6 background index fields (index_bg_rho_dmeff, index_bg_Tdmeff, index_bg_Vrel_dmeff, index_bg_dkappa_dmeff, index_bg_dkappaT_dmeff, index_bg_cdmeff2)
+- class_dmeff_uptodate/source/background.c: Added has_dmeff flag initialization and setting, 6 class_define_index calls, rho_dmeff computation in background_functions, placeholder values for T_dmeff/dkappa/dkappaT/cdmeff2/Vrel, dmeff in rho_m/Omega_m/nfsm/growth factor density sums, array deallocation in background_free_input, 6 output column titles, 6 output data stores, budget output entry
+- class_dmeff_uptodate/test_dmeff/compare_outputs.py: Updated to handle CLASS v3.3.4 output file naming (files include _00_ counter)
+
+Validation results:
+- Compilation: clean build with zero new warnings
+- All 6 test cases run without errors
+- rho_dmeff(z) matches reference to 0.0000% at z=0, 100, 1000, 10000 (exact analytical formula)
+- rho_dmeff(z=1000)/rho_dmeff(z=0) ratio matches expected (1+z)^3 scaling perfectly
+- T_dmeff shows placeholder values (T_cmb*(1+z)) as expected; will be corrected in Phase 3
+- Vanilla test confirms no dmeff columns appear when has_dmeff is false
+- Background output file contains all 6 dmeff columns: (.)rho_dmeff, T_dmeff, Vrel_dmeff, dkappa_dmeff, dkappaT_dmeff, cdmeff2
 
 
 ## Interfaces and Dependencies

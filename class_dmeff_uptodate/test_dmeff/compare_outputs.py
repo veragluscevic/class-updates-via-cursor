@@ -79,6 +79,22 @@ def find_column(col_names, target):
     return None
 
 
+def find_output_file(output_dir, test_name, suffix):
+    """Find output file, trying both v3.3.4 naming (with _00_) and old naming.
+
+    CLASS v3.3.4 generates files like test_coulomb_00_background.dat
+    while older versions generate test_coulomb_background.dat.
+    """
+    candidates = [
+        os.path.join(output_dir, f"{test_name}_00_{suffix}.dat"),
+        os.path.join(output_dir, f"{test_name}_{suffix}.dat"),
+    ]
+    for path in candidates:
+        if os.path.exists(path):
+            return path
+    return candidates[-1]  # return the old-style name for error reporting
+
+
 def relative_error(ref, new, floor=1e-30):
     """Compute relative error, using floor to avoid division by zero."""
     denom = np.maximum(np.abs(ref), floor)
@@ -96,7 +112,7 @@ def check_background(test_name, output_dir, ref_dir, tolerance):
     """Compare background output: rho_dmeff, T_dmeff."""
     print("\n--- Background check ---")
     ref_file = os.path.join(ref_dir, f"{test_name}_background.dat")
-    new_file = os.path.join(output_dir, f"{test_name}_background.dat")
+    new_file = find_output_file(output_dir, test_name, "background")
 
     ref_names, ref_data = load_class_output(ref_file)
     new_names, new_data = load_class_output(new_file)
@@ -161,7 +177,7 @@ def check_thermodynamics(test_name, output_dir, ref_dir, tolerance):
     """Compare thermodynamics output: T_dmeff, T_b, rates."""
     print("\n--- Thermodynamics check ---")
     ref_file = os.path.join(ref_dir, f"{test_name}_thermodynamics.dat")
-    new_file = os.path.join(output_dir, f"{test_name}_thermodynamics.dat")
+    new_file = find_output_file(output_dir, test_name, "thermodynamics")
 
     ref_names, ref_data = load_class_output(ref_file)
     new_names, new_data = load_class_output(new_file)
@@ -242,7 +258,7 @@ def check_cl(test_name, output_dir, ref_dir, tolerance, compare_to=None):
     print("\n--- C_l check ---")
     ref_test = compare_to if compare_to else test_name
     ref_file = os.path.join(ref_dir, f"{ref_test}_cl.dat")
-    new_file = os.path.join(output_dir, f"{test_name}_cl.dat")
+    new_file = find_output_file(output_dir, test_name, "cl")
 
     ref_names, ref_data = load_class_output(ref_file)
     new_names, new_data = load_class_output(new_file)
@@ -299,7 +315,7 @@ def check_pk(test_name, output_dir, ref_dir, tolerance, compare_to=None):
     print("\n--- P(k) check ---")
     ref_test = compare_to if compare_to else test_name
     ref_file = os.path.join(ref_dir, f"{ref_test}_pk.dat")
-    new_file = os.path.join(output_dir, f"{test_name}_pk.dat")
+    new_file = find_output_file(output_dir, test_name, "pk")
 
     ref_names, ref_data = load_class_output(ref_file)
     new_names, new_data = load_class_output(new_file)
@@ -356,7 +372,7 @@ def check_tk(test_name, output_dir, ref_dir, tolerance):
     """Compare transfer functions, including d_dmeff if present."""
     print("\n--- Transfer function check ---")
     ref_file = os.path.join(ref_dir, f"{test_name}_tk.dat")
-    new_file = os.path.join(output_dir, f"{test_name}_tk.dat")
+    new_file = find_output_file(output_dir, test_name, "tk")
 
     ref_names, ref_data = load_class_output(ref_file)
     new_names, new_data = load_class_output(new_file)

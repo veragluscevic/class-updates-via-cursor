@@ -442,6 +442,14 @@ int background_functions(
     rho_m += pvecback[pba->index_bg_rho_cdm];
   }
 
+  /* dmeff */
+  if (pba->has_dmeff == _TRUE_) {
+    pvecback[pba->index_bg_rho_dmeff] = pba->Omega0_dmeff * pow(pba->H0,2) / pow(a,3);
+    rho_tot += pvecback[pba->index_bg_rho_dmeff];
+    p_tot += 0.;
+    rho_m += pvecback[pba->index_bg_rho_dmeff];
+  }
+
   /* idm */
   if (pba->has_idm == _TRUE_) {
     pvecback[pba->index_bg_rho_idm] = pba->Omega0_idm * pow(pba->H0,2) / pow(a,3);
@@ -605,6 +613,18 @@ int background_functions(
   /** - compute relativistic density to total density ratio */
   pvecback[pba->index_bg_Omega_r] = rho_r / rho_crit;
 
+  /** - make placeholders for dmeff quantities that are computed in thermodynamics */
+  if (pba->has_dmeff == _TRUE_) {
+    pvecback[pba->index_bg_Tdmeff]        = pba->T_cmb / a;
+    pvecback[pba->index_bg_dkappa_dmeff]  = 0.;
+    pvecback[pba->index_bg_dkappaT_dmeff] = 0.;
+    pvecback[pba->index_bg_cdmeff2]       = 0.;
+    pvecback[pba->index_bg_Vrel_dmeff]    = pba->Vrel_dmeff;
+    if ((1./a - 1.) < 1000.) {
+      pvecback[pba->index_bg_Vrel_dmeff] *= (1./a) / 1001.;
+    }
+  }
+
   /** - compute other quantities in the exhaustive, redundant format */
   if (return_format == long_info) {
 
@@ -694,6 +714,7 @@ int background_w_fld(
     Omega_r = pba->Omega0_g * (1. + 3.044 * 7./8.*pow(4./11.,4./3.)); // assumes LambdaCDM + eventually massive neutrinos so light that they are relativistic at equality; needs to be generalised later on.
     Omega_m = pba->Omega0_b;
     if (pba->has_cdm == _TRUE_) Omega_m += pba->Omega0_cdm;
+    if (pba->has_dmeff == _TRUE_) Omega_m += pba->Omega0_dmeff;
     if (pba->has_idm == _TRUE_) Omega_m += pba->Omega0_idm;
     if (pba->has_dcdm == _TRUE_)
       class_stop(pba->error_message,"Early Dark Energy not compatible with decaying Dark Matter because we omitted to code the calculation of a_eq in that case, but it would not be difficult to add it if necessary, should be a matter of 5 minutes");
@@ -950,6 +971,14 @@ int background_free_input(
     if (pba->scf_parameters != NULL)
       free(pba->scf_parameters);
   }
+
+  if (pba->has_dmeff) {
+    if (pba->sigma_dmeff != NULL)
+      free(pba->sigma_dmeff);
+    if (pba->npow_dmeff != NULL)
+      free(pba->npow_dmeff);
+  }
+
   return _SUCCESS_;
 }
 
@@ -976,6 +1005,7 @@ int background_indices(
   /** - initialize all flags: which species are present? */
 
   pba->has_cdm = _FALSE_;
+  pba->has_dmeff = _FALSE_;
   pba->has_idm = _FALSE_;
   pba->has_ncdm = _FALSE_;
   pba->has_dcdm = _FALSE_;
@@ -990,6 +1020,9 @@ int background_indices(
 
   if (pba->Omega0_cdm != 0.)
     pba->has_cdm = _TRUE_;
+
+  if (pba->Omega0_dmeff != 0.)
+    pba->has_dmeff = _TRUE_;
 
   if (pba->Omega0_idm != 0.)
     pba->has_idm = _TRUE_;
@@ -1046,6 +1079,24 @@ int background_indices(
 
   /* - index for rho_cdm */
   class_define_index(pba->index_bg_rho_cdm,pba->has_cdm,index_bg,1);
+
+  /* - index for rho_dmeff */
+  class_define_index(pba->index_bg_rho_dmeff,pba->has_dmeff,index_bg,1);
+
+  /* - index for Tdmeff */
+  class_define_index(pba->index_bg_Tdmeff,pba->has_dmeff,index_bg,1);
+
+  /* - index for Vrel_dmeff */
+  class_define_index(pba->index_bg_Vrel_dmeff,pba->has_dmeff,index_bg,1);
+
+  /* - index for dmeff momentum exchange rate */
+  class_define_index(pba->index_bg_dkappa_dmeff,pba->has_dmeff,index_bg,1);
+
+  /* - index for dmeff heat exchange rate */
+  class_define_index(pba->index_bg_dkappaT_dmeff,pba->has_dmeff,index_bg,1);
+
+  /* - index for dmeff speed of sound squared */
+  class_define_index(pba->index_bg_cdmeff2,pba->has_dmeff,index_bg,1);
 
   /* - index for rho_idm  */
   class_define_index(pba->index_bg_rho_idm,pba->has_idm,index_bg,1);
@@ -2098,6 +2149,8 @@ int background_solve(
   pba->Omega0_nfsm =  pba->Omega0_b;
   if (pba->has_cdm == _TRUE_)
     pba->Omega0_nfsm += pba->Omega0_cdm;
+  if (pba->has_dmeff == _TRUE_)
+    pba->Omega0_nfsm += pba->Omega0_dmeff;
   if (pba->has_idm == _TRUE_)
     pba->Omega0_nfsm += pba->Omega0_idm;
   if (pba->has_dcdm == _TRUE_)
@@ -2440,6 +2493,12 @@ int background_output_titles(
   class_store_columntitle(titles,"(.)rho_g",_TRUE_);
   class_store_columntitle(titles,"(.)rho_b",_TRUE_);
   class_store_columntitle(titles,"(.)rho_cdm",pba->has_cdm);
+  class_store_columntitle(titles,"(.)rho_dmeff",pba->has_dmeff);
+  class_store_columntitle(titles,"T_dmeff",pba->has_dmeff);
+  class_store_columntitle(titles,"Vrel_dmeff",pba->has_dmeff);
+  class_store_columntitle(titles,"dkappa_dmeff",pba->has_dmeff);
+  class_store_columntitle(titles,"dkappaT_dmeff",pba->has_dmeff);
+  class_store_columntitle(titles,"cdmeff2",pba->has_dmeff);
   class_store_columntitle(titles,"(.)rho_idm",pba->has_idm);
   if (pba->has_ncdm == _TRUE_) {
     for (n=0; n<pba->N_ncdm; n++) {
@@ -2518,6 +2577,12 @@ int background_output_data(
     class_store_double(dataptr,pvecback[pba->index_bg_rho_g],_TRUE_,storeidx);
     class_store_double(dataptr,pvecback[pba->index_bg_rho_b],_TRUE_,storeidx);
     class_store_double(dataptr,pvecback[pba->index_bg_rho_cdm],pba->has_cdm,storeidx);
+    class_store_double(dataptr,pvecback[pba->index_bg_rho_dmeff],pba->has_dmeff,storeidx);
+    class_store_double(dataptr,pvecback[pba->index_bg_Tdmeff],pba->has_dmeff,storeidx);
+    class_store_double(dataptr,pvecback[pba->index_bg_Vrel_dmeff],pba->has_dmeff,storeidx);
+    class_store_double(dataptr,pvecback[pba->index_bg_dkappa_dmeff],pba->has_dmeff,storeidx);
+    class_store_double(dataptr,pvecback[pba->index_bg_dkappaT_dmeff],pba->has_dmeff,storeidx);
+    class_store_double(dataptr,pvecback[pba->index_bg_cdmeff2],pba->has_dmeff,storeidx);
     class_store_double(dataptr,pvecback[pba->index_bg_rho_idm],pba->has_idm,storeidx);
     if (pba->has_ncdm == _TRUE_) {
       for (n=0; n<pba->N_ncdm; n++) {
@@ -2637,6 +2702,9 @@ int background_derivs(
   rho_M = pvecback[pba->index_bg_rho_b];
   if (pba->has_cdm == _TRUE_) {
     rho_M += pvecback[pba->index_bg_rho_cdm];
+  }
+  if (pba->has_dmeff == _TRUE_) {
+    rho_M += pvecback[pba->index_bg_rho_dmeff];
   }
   if (pba->has_idm == _TRUE_){
     rho_M += pvecback[pba->index_bg_rho_idm];
@@ -2807,6 +2875,10 @@ int background_output_budget(
     if (pba->has_cdm == _TRUE_) {
       class_print_species("Cold Dark Matter",cdm);
       budget_matter+=pba->Omega0_cdm;
+    }
+    if (pba->has_dmeff == _TRUE_) {
+      class_print_species("Interacting DM - baryons",dmeff);
+      budget_matter+=pba->Omega0_dmeff;
     }
     if (pba->has_idm == _TRUE_){
       class_print_species("Interacting DM - idr,b,g",idm);
