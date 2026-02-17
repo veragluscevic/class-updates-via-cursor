@@ -71,10 +71,10 @@ A user can verify this works by creating an input file in class_dmeff_uptodate/ 
   - [x] Modify source functions to output dmeff perturbations with N-body gauge corrections
   - [x] Add column titles for delta_dmeff and theta_dmeff in scalar perturbation output
   - [x] Validate: all 6 tests (5 dmeff + vanilla) pass at l <= 1000 to < 0.1%; l=2000 shows ~0.20% which is the CLASS v2.9.4->v3.3.4 HyRec baseline difference (identical for vanilla and all dmeff cases); P(k) < 0.08% for all tests
-- [ ] Phase 5: Port transfer and output modules
-  - [ ] Add transfer column titles and storage for delta_dmeff, theta_dmeff in perturbations output functions
-  - [ ] Check class_dmeff/source/output.c for any dmeff-specific code and port if present
-  - [ ] Validate: compile and verify transfer output files contain dmeff columns
+- [x] Phase 5: Port transfer and output modules
+  - [x] Add transfer column titles and storage for delta_dmeff, theta_dmeff in perturbations output functions
+  - [x] Check class_dmeff/source/output.c for any dmeff-specific code and port if present
+  - [x] Validate: compile and verify transfer output files contain dmeff columns
 - [ ] Phase 6: Port fourier module warning (formerly nonlinear)
   - [ ] Locate warning code in class_dmeff/source/nonlinear.c
   - [ ] Port warning to appropriate location in class_dmeff_uptodate/source/fourier.c
@@ -617,6 +617,30 @@ Validation results:
 - Background T_dmeff now shows correct values (not T_cmb/a placeholders)
 - Vanilla test: Cl and P(k) unchanged vs reference (< 0.2% max, baseline CLASS version difference)
 - rate_dmeff_mom: < 0.15% at most z values; up to ~0.3% at z=1000 due to xe differences between HyRec versions
+
+
+### Phase 5 Transfer and Output Modules (completed 2026-02-17)
+
+Files modified:
+- class_dmeff_uptodate/source/output.c: Added dmeff thermodynamics header comments (T_dmeff, rate_dmeff_mom, rate_dmeff_mom', rate_dmeff_temp, c_dmeff^2) in the thermodynamics output section, matching class_dmeff/source/output.c
+
+Key findings:
+- The transfer column titles (d_dmeff, t_dmeff) and data storage (class_store_double for delta_dmeff, theta_dmeff) were already fully implemented in perturbations.c during Phase 4
+- The old class_dmeff/source/output.c contained only 6 dmeff references, all in the thermodynamics output file header comments section
+- No dmeff code exists in transfer.c, spectra.c (v2.9.4), transfer.c, or harmonic.c (v3.3.4) -- these modules need no modifications
+- The only new code needed was 7 lines of thermodynamics header comments in output.c
+
+Validation results:
+- Compilation: clean build with zero new warnings
+- All 6 test cases run without errors
+- Transfer function output (tk files) contains d_dmeff column for all dmeff test cases
+- Thermodynamics output header includes dmeff column descriptions
+- All validation metrics identical to Phase 4 (no physics changes, only output file headers added):
+  - T_dmeff: < 0.06% for all tests
+  - C_l(l<=1000): < 0.06% for all tests
+  - P(k): < 0.08% for all tests
+  - d_dmeff transfer functions: < 0.015% for all tests
+  - Known baseline failures unchanged: Tb(z=10) ~0.30%, C_l(l=2000) ~0.20% (CLASS version difference)
 
 
 ## Interfaces and Dependencies
