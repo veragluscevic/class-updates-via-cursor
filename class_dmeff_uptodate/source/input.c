@@ -2513,7 +2513,20 @@ int input_read_parameters_species(struct file_content * pfc,
   }
   class_test(pba->Omega0_cdm<0,errmsg, "You cannot set the cold dark matter density to negative values.");
 
-  /** 4b) Omega_0_dmeff (dark matter with effective interactions) */
+  /** 4b) Omega_0_dmeff: dark matter with effective baryon interactions.
+   *
+   * The dmeff density can be specified as Omega_dmeff, omega_dmeff (= Omega*h^2),
+   * or f_dmeff (fraction of total CDM). Only one of the three may be given.
+   * When f_dmeff is used, Omega_cdm is reduced accordingly.
+   *
+   * If Omega_dmeff > 0, additional parameters are read:
+   *   m_dmeff      : particle mass in GeV (converted to kg internally)
+   *   N_dmeff      : number of interaction terms (array length)
+   *   sigma_dmeff  : cross section(s) in cm^2 (converted to m^2 via /10000)
+   *   npow_dmeff   : velocity power law index(es), each >= -4
+   *   dmeff_target : scattering target(s): baryon, hydrogen, helium, electron
+   *   Vrel_dmeff   : initial bulk velocity in km/s (converted to m/s)
+   */
   class_call(parser_read_double(pfc,"Omega_dmeff",&param1,&flag1,errmsg),
              errmsg,
              errmsg);

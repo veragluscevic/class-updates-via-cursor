@@ -4832,6 +4832,25 @@ int thermodynamics_idm_initial_temperature(
 /**
  * Compute momentum and heat exchange rates for dmeff-baryon scattering.
  *
+ * For each interaction term i = 0..N_dmeff-1, computes the momentum-transfer
+ * rate (dkappa) and heat-transfer rate (dkappaT) from a velocity-dependent
+ * cross section sigma(v) = sigma_0 * (v/c)^n, thermally averaged over a
+ * Maxwell-Boltzmann distribution. The thermal velocity is:
+ *
+ *   v_th^2 = kB*T_chi/m_chi + kB*T_target/m_target + V_rel^2/3
+ *
+ * where V_rel is the DM-baryon bulk relative velocity. The normalization:
+ *
+ *   cn = 2^((n+5)/2) * Gamma(3+n/2) / (3*sqrt(pi))
+ *
+ * gives the thermal average of v^(n+1) for a Maxwellian. The momentum rate:
+ *
+ *   dkappa_mom = a * rho_target * cn * sigma / (m_chi + m_target)
+ *              * (v_th^2/c^2)^((n+1)/2)
+ *
+ * Also computes ddkappa (time derivative of momentum rate, needed for tight-
+ * coupling approximation in perturbations) and cdmeff2 (sound speed squared).
+ *
  * Fills pvecthermo entries: dkappa_dmeff, ddkappa_dmeff, dkappaT_dmeff, cdmeff2.
  * Requires pvecthermo to already contain: Tdmeff, Tb, dTb, xe.
  *
@@ -4876,6 +4895,8 @@ int thermodynamics_dmeff_rate(struct background *pba,
   Tdmeff = pvecthermo[pth->index_th_Tdmeff];
   Tb     = pvecthermo[pth->index_th_Tb];
 
+  /* Loop over interaction terms. Each term has its own cross section,
+   * velocity power law index, and scattering target. Rates are additive. */
   for (i=0; i<pba->N_dmeff; i++) {
     if (pba->sigma_dmeff[i] <= 0.) continue;
 
@@ -4914,8 +4935,10 @@ int thermodynamics_dmeff_rate(struct background *pba,
     ddkappa2 += rate_mom * (pba->npow_dmeff[i]+1.)/2. * (_k_B_)/(mass_target)  / vth2;
   }
 
-  /* derivatives: dTdmeff/dtau and dTb/dtau needed here.
-     v3.3.4 stores dTb/dz in index_th_dTb; convert to dTb/dtau via dz/dtau = -H */
+  /* Compute ddkappa (time derivative of momentum rate), needed for the
+   * tight-coupling approximation in the perturbation module.
+   * v3.3.4 stores dTb/dz in index_th_dTb; convert to dTb/dtau via
+   * dz/dtau = -(1+z)*H = -H/a, so dTb/dtau = dTb/dz * (-H). */
   dTdmeff = -2.*a*H*Tdmeff + 2.*pvecthermo[pth->index_th_dkappaT_dmeff] * (Tb - Tdmeff);
   dTb = pvecthermo[pth->index_th_dTb] * (-H);
   pvecthermo[pth->index_th_ddkappa_dmeff] = -2.*a*H*pvecthermo[pth->index_th_dkappa_dmeff] + ddkappa1*dTdmeff + ddkappa2*dTb;
@@ -4929,6 +4952,19 @@ int thermodynamics_dmeff_rate(struct background *pba,
 /**
  * Derivative of dmeff temperature with respect to conformal time.
  * Passed to the generic integrator.
+ *
+ * The dmeff temperature T_chi evolves as:
+ *
+ *   dT_chi/dtau = -2*a*H*T_chi + 2*dkappaT*(T_b - T_chi)
+ *
+ * The first term is adiabatic cooling (T ~ a^-2 for non-relativistic matter).
+ * The second term is heat exchange with baryons: when dkappaT >> a*H, the
+ * dark matter temperature is dragged toward the baryon temperature. When
+ * dkappaT << a*H (after dmeff thermal decoupling), T_chi freely cools as
+ * a^-2.
+ *
+ * Above z_dmeff_decoupling, uses simplified evolution dT/dtau = -a*H*T
+ * (radiation-dominated regime where T_chi ~ T_b ~ T_cmb/a).
  *
  * @param tau                      Input: conformal time
  * @param y                        Input: vector of variables
@@ -5007,7 +5043,25 @@ int thermodynamics_dmeff_derivs(double tau,
 }
 
 /**
- * Integrate dmeff temperature evolution and write results to background and thermodynamics tables.
+ * Integrate dmeff temperature evolution and write results to background
+ * and thermodynamics tables.
+ *
+ * This function is called from thermodynamics_init AFTER the standard
+ * recombination integration is complete, because the dmeff temperature ODE
+ * needs the baryon temperature T_b(z) and free electron fraction x_e(z)
+ * from the thermodynamics table.
+ *
+ * Integration proceeds forward in conformal time using the same time steps
+ * as the background table. Initial condition: T_chi = T_cmb/a at the
+ * earliest background time (tight coupling to photons).
+ *
+ * IMPORTANT cross-module data flow: After integration, this function writes
+ * the computed T_dmeff, dkappa_dmeff, dkappaT_dmeff, and cdmeff2 BACK into
+ * pba->background_table (overwriting the placeholder values set in
+ * background_functions) and then recreates the background splines. It also
+ * fills the thermodynamics table with the same quantities. The perturbation
+ * module must read these rates from pvecthermo (the thermodynamics
+ * interpolation vector), which is the authoritative source.
  *
  * @param ppr Input: precision structure
  * @param pba Input/Output: background structure

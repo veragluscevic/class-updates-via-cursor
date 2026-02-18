@@ -442,7 +442,12 @@ int background_functions(
     rho_m += pvecback[pba->index_bg_rho_cdm];
   }
 
-  /* dmeff */
+  /* dmeff: dark matter with effective baryon interactions.
+   * Like CDM, dmeff is pressureless non-relativistic matter with rho ~ a^-3.
+   * The density evolution is purely gravitational; scattering affects only
+   * the temperature (thermodynamics module) and perturbations. Placeholder
+   * values for T_dmeff, interaction rates, and sound speed are set below
+   * and later overwritten by thermodynamics_dmeff_temperature(). */
   if (pba->has_dmeff == _TRUE_) {
     pvecback[pba->index_bg_rho_dmeff] = pba->Omega0_dmeff * pow(pba->H0,2) / pow(a,3);
     rho_tot += pvecback[pba->index_bg_rho_dmeff];

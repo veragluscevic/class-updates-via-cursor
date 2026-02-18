@@ -9190,11 +9190,35 @@ int perturbations_derivs(double tau,
 
     dy[pv->index_pt_delta_b] = -(theta_b+metric_continuity);
 
-    /** - ---> dmeff (must come before baryon velocity, which uses beta_dmeff and rate_dmeff) */
+    /** - ---> dmeff: dark matter perturbations with baryon scattering.
+     *
+     * ORDERING: This block MUST appear before the baryon velocity equation,
+     * because the baryon TCA formula uses beta_dmeff and rate_dmeff computed
+     * here. Moving it after baryons causes beta_dmeff=0 when the TCA
+     * denominator is evaluated, disabling the TCA modification and producing
+     * 1-2% errors in C_l for strongly-interacting cases.
+     *
+     * The evolution equations are:
+     *   delta_chi' = -(theta_chi + metric_continuity)       [continuity]
+     *   theta_chi' = -a'/a * theta_chi + k^2*c_chi^2*delta_chi
+     *                + metric_euler
+     *                + R_mom * (theta_b - theta_chi)         [Euler + drag]
+     *
+     * where R_mom is the momentum exchange rate from the thermodynamics table
+     * and c_chi^2 is the dmeff sound speed.
+     *
+     * beta_dmeff = (R_mom/dkappa_Thomson) * (rho_chi/rho_b) / (1+R) measures
+     * the dmeff-baryon coupling relative to the photon-baryon coupling; it
+     * modifies the TCA denominator from 1/(1+R) to 1/(1+R+beta*R).
+     *
+     * NOTE: Rates are read from pvecthermo (thermodynamics table), NOT from
+     * pvecback (background table). Both contain dmeff quantities after the
+     * write-back, but the thermodynamics table is authoritative.
+     */
 
     if (pba->has_dmeff == _TRUE_) {
 
-      dy[pv->index_pt_delta_dmeff] = -(theta_dmeff+metric_continuity); /* dmeff density */
+      dy[pv->index_pt_delta_dmeff] = -(theta_dmeff+metric_continuity);
 
       rate_dmeff = pvecthermo[pth->index_th_dkappa_dmeff];
 
@@ -9220,7 +9244,10 @@ int perturbations_derivs(double tau,
         + k2*delta_p_b_over_rho_b
         + R*pvecthermo[pth->index_th_dkappa]*(theta_g-theta_b);
 
-      /** contributions from interactions with dark matter (dmeff) **/
+      /** dmeff back-reaction drag on baryons (non-TCA regime):
+       *  theta_b' += (rho_chi/rho_b) * R_mom * (theta_chi - theta_b)
+       *  This is Newton's third law: the force on baryons is equal and
+       *  opposite to the drag on dmeff, weighted by the density ratio. */
       if (pba->has_dmeff == _TRUE_){
         dy[pv->index_pt_theta_b] += R_dmeff * rate_dmeff * (theta_dmeff-theta_b);
       }
@@ -9237,13 +9264,22 @@ int perturbations_derivs(double tau,
                  error_message,
                  error_message);
 
-      /* perturbed recombination has an impact **/
+      /* Tight-coupling approximation (TCA) for baryon velocity.
+       * The standard TCA denominator 1/(1+R) is modified to 1/(1+R+beta*R)
+       * where beta = beta_dmeff encodes the dmeff-baryon coupling strength
+       * relative to the photon-baryon coupling. When beta > 0, the effective
+       * baryon loading increases, reducing the photon-baryon oscillation
+       * amplitude. */
       dy[pv->index_pt_theta_b] =
         (-a_prime_over_a*theta_b
          +k2*(delta_p_b_over_rho_b+R*(delta_g/4.-s2_squared*ppw->tca_shear_g))
          +R*ppw->tca_slip)/(1.+R+beta_dmeff*R)
         +metric_euler;
 
+      /* dmeff TCA correction terms: account for the time-variation of the
+       * dmeff interaction rate and the dmeff velocity evolution within the
+       * tight-coupling expansion. tau_dmeff = 1/R_mom is the dmeff
+       * interaction timescale; dtau_dmeff is its conformal time derivative. */
       if (pba->has_dmeff == _TRUE_ && rate_dmeff > 0){
         tau_dmeff = 1./rate_dmeff;
         dtau_dmeff = -pvecthermo[pth->index_th_ddkappa_dmeff]*tau_dmeff*tau_dmeff;

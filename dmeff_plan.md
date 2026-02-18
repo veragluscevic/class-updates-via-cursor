@@ -97,9 +97,12 @@ A user can verify this works by creating an input file in class_dmeff_uptodate/ 
   - [x] Check for memory leaks with valgrind (valgrind not available on macOS; skipped)
   - [x] Verify both synchronous and Newtonian gauges produce consistent CMB C_ℓ (< 0.01%)
   - [x] Run comparison script on all test cases to produce summary report
-- [ ] Documentation
-  - [ ] Create test_dmeff/README.md explaining test suite
-  - [ ] Document dmeff physics in comments where appropriate
+- [x] Documentation
+  - [x] Create test_dmeff/README.md explaining test suite
+  - [x] Document dmeff physics in comments where appropriate
+  - [x] Create test_dmeff/run_all_tests.sh one-command validation script
+  - [x] Create test_dmeff/example_dmeff.py Python example with verification
+  - [x] Create class_dmeff_uptodate/README_DMEFF.md top-level user guide
 
 
 ## Surprises & Discoveries
@@ -178,7 +181,6 @@ The dmeff dark matter-baryon interaction physics has been successfully ported fr
 
 ### Remaining Items
 
-- Documentation (test_dmeff/README.md, physics comments) is deferred and tracked separately.
 - Valgrind memory leak testing requires a Linux environment.
 
 ### Lessons Learned
@@ -755,6 +757,22 @@ All 6 test cases ran without errors. Output files verified non-empty with correc
 
 Files created:
 - class_dmeff_uptodate/test_dmeff/test_coulomb_newtonian.ini (Newtonian gauge variant of test_coulomb)
+
+
+### Documentation Phase (completed 2026-02-17)
+
+Files created:
+- class_dmeff_uptodate/test_dmeff/README.md: Comprehensive test suite documentation with test case descriptions, verification procedures, acceptance criteria, and known limitations
+- class_dmeff_uptodate/test_dmeff/generate_test_data.sh: Self-contained script that regenerates all test INI files and reference outputs from scratch by building and running class_dmeff (v2.9.4). Creates 7 INI files and 30 reference .dat files. Use this to recover if untracked test data is lost.
+- class_dmeff_uptodate/test_dmeff/run_all_tests.sh: One-command shell script that runs all 6 test cases, compares against references, and prints a summary table
+- class_dmeff_uptodate/test_dmeff/example_dmeff.py: Python example script demonstrating dmeff usage from the Python wrapper, including Coulomb and constant cross-section models, derived parameter access, CMB/P(k) comparison against vanilla, and self-verification checks
+- class_dmeff_uptodate/README_DMEFF.md: Top-level user guide covering physics overview, build instructions, quick-start examples (CLI and Python), parameter reference, output quantities, and validation instructions
+
+Files modified with enhanced physics comments:
+- class_dmeff_uptodate/source/background.c: Added dmeff density comment explaining placeholder write-back pattern
+- class_dmeff_uptodate/source/thermodynamics.c: Enhanced docstrings for thermodynamics_dmeff_rate (thermal averaging formulas), thermodynamics_dmeff_derivs (T_chi ODE physics), thermodynamics_dmeff_temperature (cross-module data flow), and inline comments for rate loop and dTb convention
+- class_dmeff_uptodate/source/perturbations.c: Enhanced dmeff evolution equation comment (ordering requirement, TCA modification physics, pvecthermo source note), baryon drag comment (Newton's third law), TCA denominator comment (beta_dmeff effect), TCA correction terms comment
+- class_dmeff_uptodate/source/input.c: Added parameter parsing overview comment with unit conversions
 
 
 ## Interfaces and Dependencies
